@@ -1,6 +1,5 @@
 #!/bin/python3
 
-
 import json
 import requests
 from jsonpath_ng import jsonpath
@@ -10,7 +9,7 @@ import time
 
 start = time.time()
 
-wb = load_workbook(filename='inventoryexport_trial_100.xlsx')
+wb = load_workbook(filename='inventoryexport_trial.xlsx')
 ws = wb.active
 
 export_workbook = Workbook()
@@ -20,8 +19,20 @@ row = 2
 
 list_cas = []
 
-for col in ws['B']:
-    list_cas.append(col.value)
+for andagain in ws['B']:
+    list_cas.append(andagain.value)
+
+substance_name_list = []
+
+for andagain in ws['A']:
+    substance_name_list.append(andagain.value)
+
+location_list = []
+
+for andagain in ws['A']:
+    location_list.append(andagain.value)
+
+
 
 for cas in list_cas:
     try:
@@ -61,6 +72,13 @@ for cas in list_cas:
         export_worksheet['D'+ str(row)] = str(environmental_hazards)
         export_worksheet['E'+ str(row)] = str(other_hazards)
         export_worksheet['F'+ str(row)] = str(msds_url)
+        
+        row_substance = 2
+        for substance in substance_name_list:
+            export_worksheet['G'+ str(row_substance)] = str(substance)
+            row_substance+=1
+
+        
 
 
 
@@ -76,4 +94,3 @@ for cas in list_cas:
 export_workbook.save(filename="test_output.xlsx")
 end = time.time()
 print(end-start)
-        
