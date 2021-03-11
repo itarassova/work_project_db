@@ -17,39 +17,40 @@ export_worksheet = export_workbook.active
 
 row = 2
 
-list_cas = []
+#list_cas = []
 
-for col in ws['B']:
-    list_cas.append(col.value)
+#for col in ws['B']:
+    #list_cas.append(col.value)
 
-substance_name_list = []
+#substance_name_list = []
 
-for col in ws['A']:
-    substance_name_list.append(col.value)
+#for col in ws['A']:
+    #substance_name_list.append(col.value)
 
-row_substance = 2
-for substance in substance_name_list:
-    export_worksheet['G'+ str(row_substance)] = str(substance)
-    row_substance+=1
+#row_substance = 2
+#for substance in substance_name_list:
+    #export_worksheet['G'+ str(row_substance)] = str(substance)
+    #row_substance+=1
 
-location_list = []
+#location_list = []
 
-for col in ws['H']:
-    location_list.append(col.value)
+#for col in ws['H']:
+    #location_list.append(col.value)
 
-row_location = 2
-for location in location_list:
-    room_location = location.split('>')[1]
-    print(room_location)
-    export_worksheet['H'+ str(row_location)] = str(room_location)
-    row_location+=1
-
-
+#row_location = 2
+#for location in location_list:
+    #room_location = location.split('>')[1]
+    #print(room_location)
+    #xport_worksheet['H'+ str(row_location)] = str(room_location)
+    #row_location+=1
 
 
 
-for cas in list_cas:
+
+
+for cell in ws['B']:
     try:
+        cas = cell.value
         cid_url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{}/cids/JSON".format(cas)
         cid_resp = requests.get(url=cid_url)
         cid = cid_resp.json()["IdentifierList"]["CID"][0]
@@ -86,6 +87,8 @@ for cas in list_cas:
         export_worksheet['D'+ str(row)] = str(environmental_hazards)
         export_worksheet['E'+ str(row)] = str(other_hazards)
         export_worksheet['F'+ str(row)] = str(msds_url)
+        export_worksheet['G'+ str(row)] = str(ws['A'+str(row-1)].value)
+        export_worksheet['H'+ str(row)] = str(ws['H'+str(row-1)].value).split('>')[1]
         
         
 
