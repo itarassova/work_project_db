@@ -84,8 +84,9 @@ def is_explosive(list):
 # substances = {"1234-56-78": {"Room 1": "15 ml", "Room 2": "30 ml"}, "9876-5-32" {"Room 1": "15 g", "Room 2": "30 g"}}
 substances = {}
 
-#for row_index in range(2, ws.max_row)
+read_row_index = 0
 for row in ws.iter_rows(min_row = 2, values_only = True):
+    read_row_index += 1
     try:
         name = row[0]
         cas = row[1]
@@ -93,6 +94,8 @@ for row in ws.iter_rows(min_row = 2, values_only = True):
         amount = row[2]
         unit = row[3]
         compound = Compound(cas, name)
+        if read_row_index % 100 == 0:
+            log.info("Reading record {}", str(read_row_index))
         room_location = get_room_from_location(location)
         amount = Quantity(amount, unit)
         
@@ -123,6 +126,8 @@ for compound in substances:
         further_information = '\n'.join(further_information)
         for location in locations:
             row_number += 1
+            if row_number % 50 == 0:
+                log.info("Writing record {}", str(row_number))
             amount = locations[location]
             export_worksheet['A'+ str(row_number)] = str(compound.name)
             export_worksheet['B'+ str(row_number)] = str(compound.cas)
