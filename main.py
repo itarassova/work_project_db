@@ -13,10 +13,10 @@ from compound import Compound
 
 start = time.time()
 
-wb = load_workbook(filename='inventoryexport_trial_100.xlsx')
+wb = load_workbook(filename='InventoryExport.xlsx')
 ws = wb.active
 
-export_workbook = Workbook()
+export_workbook = load_workbook(filename='template.xlsm')
 export_worksheet = export_workbook.active
 
 issues_workbook = Workbook()
@@ -110,7 +110,7 @@ for row in ws.iter_rows(min_row = 2, values_only = True):
 
 
 
-row_number = 1
+row_number = 17
 for compound in substances:
     try:
         locations = substances[compound]
@@ -122,30 +122,33 @@ for compound in substances:
         other_hazards = '\n'.join(other_hazards)
         further_information = '\n'.join(further_information)
         for location in locations:
-            row_number += 1
+            
             amount = locations[location]
-            export_worksheet['A'+ str(row_number)] = str(compound.name)
-            export_worksheet['B'+ str(row_number)] = str(compound.cas)
-            export_worksheet['C'+ str(row_number)] = str(physical_hazards)
-            export_worksheet['D'+ str(row_number)] = str(health_hazards)
-            export_worksheet['E'+ str(row_number)] = str(environmental_hazards)
-            export_worksheet['F'+ str(row_number)] = str(other_hazards)
+            export_worksheet['C'+ str(row_number)] = str(compound.name)
+            #export_worksheet['B'+ str(row_number)] = str(compound.cas)
+            export_worksheet['H'+ str(row_number)] = str(physical_hazards)
+            export_worksheet['I'+ str(row_number)] = str(health_hazards)
+            export_worksheet['J'+ str(row_number)] = str(environmental_hazards)
+            #export_worksheet['F'+ str(row_number)] = str(other_hazards)
             export_worksheet['G'+ str(row_number)] = str(msds_url)
-            export_worksheet['H'+ str(row_number)] = str(room_location)
-            export_worksheet['I'+ str(row_number)] = str(explosive)
-            export_worksheet['J'+ str(row_number)] = str(amount)
-            export_worksheet['K'+ str(row_number)] = str('Wet chemistry')
-            export_worksheet['L'+ str(row_number)] = str('BCN - Stuart Adams')
+            export_worksheet['B'+ str(row_number)] = str(room_location)
+            export_worksheet['K'+ str(row_number)] = str(explosive)
+            export_worksheet['D'+ str(row_number)] = str(amount)
+            export_worksheet['E'+ str(row_number)] = str('Wet chemistry')
+            export_worksheet['A'+ str(row_number)] = str('BCN - Stuart Adams')
             export_worksheet['M'+ str(row_number)] = str(further_information)
+            export_worksheet['F'+ str(row_number)] = str('Yes')
+
+            row_number += 1
             
     except Exception as e:
         log.error(e, exc_info=True)
         issues_worksheet.append(
-            [str(compound.name), str(compound.cas),str(room_location), str(e)])
+            [str(compound.cas), str(e)])
         count_issues_worksheet+=1        
 
 
-export_workbook.save(filename="test_output.xlsx")
+export_workbook.save(filename="template.xlsx")
 issues_workbook.save(filename="issues_output.xlsx")
 end = time.time()
 log.info("Execution took: {}", str(end-start))
