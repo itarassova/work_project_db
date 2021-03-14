@@ -8,11 +8,12 @@ from openpyxl import Workbook, load_workbook
 import time
 import logging as log
 from quantity import Quantity
+from compound import Compound
 
 
 start = time.time()
 
-wb = load_workbook(filename='inventoryexport_trial.xlsx')
+wb = load_workbook(filename='inventoryexport_trial_100.xlsx')
 ws = wb.active
 
 export_workbook = Workbook()
@@ -20,6 +21,8 @@ export_worksheet = export_workbook.active
 
 issues_workbook = Workbook()
 issues_worksheet = issues_workbook.active
+
+count_issues_worksheet = 1
 
 def get_room_from_location(location):
     location_split = location.split('>')[1]
@@ -45,69 +48,104 @@ def get_hazards(cas):
     physical_warning_lines = []
     environmental_warning_lines = []
     other_hazards = []
+    further_information = []
     for warning_line in filter_expression.find(data):
-        log.info(warning_line.value)        
-        if warning_line.value[1] == '2':
-            physical_warning_lines.append(warning_line.value)
-        elif warning_line.value[1] == '3':
-            health_warning_lines.append(warning_line.value)
-        elif warning_line.value[1] == '4':
-            environmental_warning_lines.append(warning_line.value)
+        log.info(warning_line.value)
+        warning_string = warning_line.value
+        comment_start = warning_string.find("[")
+        if comment_start != -1:
+            further_information.append(warning_string[comment_start:])
+            warning_string = warning_string[:comment_start]        
+        if warning_string[1] == '2':
+            physical_warning_lines.append(warning_string)
+        elif warning_string[1] == '3':
+            health_warning_lines.append(warning_string)
+        elif warning_string[1] == '4':
+            environmental_warning_lines.append(warning_string)
         else:
-            other_hazards.append(warning_line.value)
-    return physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url
+            other_hazards.append(warning_string)
+    return physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url, further_information
 
+positive = 'yes'
+negative = 'no'
+
+def is_explosive(list):
+    not_explosive_290 = 'H290'
+    not_explosive_281 = 'H281'
+
+    if list:
+        hazard_codes_list = [(warning_line[:4]) for warning_line in list]
+        for hazard_code in hazard_codes_list:
+            if not_explosive_290.casefold() != hazard_code.casefold() and not_explosive_281.casefold() != hazard_code.casefold()  :
+                return positive
+    return negative
+
+
+# substances = {"1234-56-78": {"Room 1": "15 ml", "Room 2": "30 ml"}, "9876-5-32" {"Room 1": "15 g", "Room 2": "30 g"}}
 substances = {}
 
-for row in ws.iter_rows(min_row = 2):
+#for row_index in range(2, ws.max_row)
+for row in ws.iter_rows(min_row = 2, values_only = True):
     try:
-        name = row[0].value        
-        cas = row[1].value
-        if not cas:
-            raise ValueError("No CAS present")
-        room_location = get_room_from_location(row[7].value)
-        amount = Quantity(row[2].value, row[3].value)
+        name = row[0]
+        cas = row[1]
+        location = row[7]
+        amount = row[2]
+        unit = row[3]
+        compound = Compound(cas, name)
+        room_location = get_room_from_location(location)
+        amount = Quantity(amount, unit)
         
-        locations = substances.get(cas, {})
+        locations = substances.get(compound, {})
         amount_in_location = locations.get(room_location)
         if not amount_in_location:
             locations[room_location] = amount
         else:
             amount_in_location += amount
-        substances[cas] = locations
-        
+        substances[compound] = locations
     except Exception as e:
         log.error(e, exc_info=True)
-        print(str(cas) + ' didn\'t work')
-        issues_worksheet[row] = ws[row]
+        issues_worksheet.append(row)
+        count_issues_worksheet+=1
 
-# substances = {"1234-56-78": {"Room 1": "15 ml", "Room 2": "30 ml"}, "9876-5-32" {"Room 1": "15 g", "Room 2": "30 g"}}
+
 
 row_number = 1
-for cas in substances:
-    locations = substances[cas]
-    physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url = get_hazards(cas)
-    physical_hazards = '\n'.join(physical_warning_lines)
-    health_hazards = '\n'.join(health_warning_lines)
-    environmental_hazards = '\n'.join(environmental_warning_lines)
-    other_hazards = '\n'.join(other_hazards)
-    for location in locations:
-        row_number += 1
-        amount = locations[location]
-        #export_worksheet['A'+ str(row)] = str(name)
-        export_worksheet['B'+ str(row_number)] = str(cas)
-        export_worksheet['C'+ str(row_number)] = str(physical_hazards)
-        export_worksheet['E'+ str(row_number)] = str(health_hazards)
-        export_worksheet['F'+ str(row_number)] = str(environmental_hazards)
-        export_worksheet['G'+ str(row_number)] = str(other_hazards)
-        export_worksheet['H'+ str(row_number)] = str(msds_url)
-        export_worksheet['I'+ str(row_number)] = str(room_location)
-        
-    
-
-    
+for compound in substances:
+    try:
+        locations = substances[compound]
+        physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url, further_information = get_hazards(compound.cas)
+        explosive = is_explosive(physical_warning_lines)
+        physical_hazards = '\n'.join(physical_warning_lines)
+        health_hazards = '\n'.join(health_warning_lines)
+        environmental_hazards = '\n'.join(environmental_warning_lines)
+        other_hazards = '\n'.join(other_hazards)
+        further_information = '\n'.join(further_information)
+        for location in locations:
+            row_number += 1
+            amount = locations[location]
+            export_worksheet['A'+ str(row_number)] = str(compound.name)
+            export_worksheet['B'+ str(row_number)] = str(compound.cas)
+            export_worksheet['C'+ str(row_number)] = str(physical_hazards)
+            export_worksheet['D'+ str(row_number)] = str(health_hazards)
+            export_worksheet['E'+ str(row_number)] = str(environmental_hazards)
+            export_worksheet['F'+ str(row_number)] = str(other_hazards)
+            export_worksheet['G'+ str(row_number)] = str(msds_url)
+            export_worksheet['H'+ str(row_number)] = str(room_location)
+            export_worksheet['I'+ str(row_number)] = str(explosive)
+            export_worksheet['J'+ str(row_number)] = str(amount)
+            export_worksheet['K'+ str(row_number)] = str('Wet chemistry')
+            export_worksheet['L'+ str(row_number)] = str('BCN - Stuart Adams')
+            export_worksheet['M'+ str(row_number)] = str(further_information)
+            
+    except Exception as e:
+        log.error(e, exc_info=True)
+        issues_worksheet.append(
+            [str(compound.name), str(compound.cas),str(room_location), str(e)])
+        count_issues_worksheet+=1        
 
 
 export_workbook.save(filename="test_output.xlsx")
+issues_workbook.save(filename="issues_output.xlsx")
 end = time.time()
-print(end-start)
+log.info("Execution took: {}", str(end-start))
