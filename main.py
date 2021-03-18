@@ -13,7 +13,7 @@ from compound import Compound
 
 start = time.time()
 
-wb = load_workbook(filename='inventoryexport_trial_100.xlsx')
+wb = load_workbook(filename='InventoryExport.xlsx')
 ws = wb.active
 
 export_workbook = Workbook()
@@ -160,7 +160,7 @@ for compound in substances:
                              ] = str(environmental_hazards)
             #export_worksheet['F'+ str(row_number)] = str(other_hazards)
             export_worksheet['G' + str(row_number)] = str(msds_url)
-            export_worksheet['B' + str(row_number)] = str(room_location)
+            export_worksheet['B' + str(row_number)] = str(location)
             export_worksheet['K' + str(row_number)] = str(explosive)
             export_worksheet['D' + str(row_number)] = str(amount)
             export_worksheet['E' + str(row_number)] = str('Wet chemistry')
@@ -175,7 +175,7 @@ for compound in substances:
         count_issues_worksheet += 1
 
 
-export_workbook.save(filename="test_output_100.xlsx")
-issues_workbook.save(filename="test_issues_output.xlsx")
+export_workbook.save(filename="template_filled.xlsx")
+issues_workbook.save(filename="issues_output.xlsx")
 end = time.time()
 log.info("Execution took: {}", str(end-start))
