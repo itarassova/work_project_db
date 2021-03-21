@@ -57,21 +57,34 @@ def get_hazards(compound):
 
 conn = sqlite3.connect('Charnwood_inventory_back-up.db')
 cursor = conn.cursor()
-cursor.execute('''CREATE TABLE REAGENTS CAS
-             ([reagent_id] INTEGER PRIMARY KEY,[cas] char''')
+cursor.executescript('''CREATE TABLE REAGENTS CAS (
+            [reagent_id] INTEGER PRIMARY KEY,
+            [cas] char, 
+            [name] char
+            );
 
-cursor.execute('''CREATE TABLE REAGENTS NAME
-             ([reagent_id] INTEGER PRIMARY KEY,[name] char''')
 
-cursor.execute('''CREATE TABLE HAZARDS
-             ([hazard_id] INTEGER PRIMARY KEY,[hazard_type] char, [hazard_code] char, [hazard_description] varchar(512) ''')
+                        CREATE TABLE HAZARDS (
+            [hazard_id] INTEGER PRIMARY KEY,
+            [hazard_type] char, [hazard_code] char, 
+            [hazard_description] varchar(512)
+            );
 
-cursor.execute('''CREATE TABLE REAGENTS HAZARDS
-             ([reagent_id] INTEGER PRIMARY KEY,[hazard_id] char''')
+                        CREATE TABLE REAGENTS HAZARDS (
+            [reagent_id] INTEGER PRIMARY KEY,
+            [hazard_id] char
+            );
 
-cursor.execute('''CREATE TABLE REAGENTS LOCATION
-             ([reagent_id] INTEGER PRIMARY KEY,[location] char''')
+                        CREATE TABLE USERS (
+            [user_id] INTEGER PRIMARY KEY,
+            [username] char
+            );
 
-cursor.execute('''CREATE TABLE REAGENTS AMOUNT
-             ([reagent_id] INTEGER PRIMARY KEY,[location] char, [mass] decimal (10,2), [volume] decimal (10,2), ''')
+                        CREATE TABLE CHARNWOOD HAZARD CODES (
+            [charnwood_code]  CHAR PRIMARY KEY,
+            [charnwood_code_description] char
+            );
+            ''')
+
+conn.commit()
 
