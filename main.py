@@ -9,6 +9,7 @@ import time
 import logging as log
 from quantity import Quantity
 from compound import Compound
+from hazard import Hazard, HazardTypes
 
 
 start = time.time()
@@ -57,27 +58,24 @@ def get_hazards(compound):
     data = resp.json()
     filter_expression = parser.parse(
         '$.Record.Section[?(@.TOCHeading=="Safety and Hazards")].Section[0].Section[0].Information[2].Value.StringWithMarkup[*].String')
-    health_warning_lines = []
-    physical_warning_lines = []
-    environmental_warning_lines = []
-    other_hazards = []
+    hazards = []
     further_information = []
-    for warning_line in filter_expression.find(data):
-        log.info(warning_line.value)
-        warning_string = warning_line.value
+    for warning_expression in filter_expression.find(data):
+        log.info(warning_expression.value)
+        warning_string = warning_expression.value_
         comment_start = warning_string.find("[")
+        code = warning_string[0:4]
+        warning_line = warning_string[4:comment_start]
+        hazard = Hazard(code, warning_line)
+        hazard.append(hazards)    
         if comment_start != -1:
             further_information.append(warning_string[comment_start:])
             warning_string = warning_string[:comment_start]
-        if warning_string[1] == '2':
-            physical_warning_lines.append(warning_string)
-        elif warning_string[1] == '3':
-            health_warning_lines.append(warning_string)
-        elif warning_string[1] == '4':
-            environmental_warning_lines.append(warning_string)
-        else:
-            other_hazards.append(warning_string)
-    return physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url, further_information
+    health_hazards = [hazard for hazard in hazards if hazard.get_type() == HazardTypes.HEALTH]
+    physical_hazards = [hazard for hazard in hazards if hazard.get_type() == HazardTypes.PHYSICAL]
+    environmental_hazards = [hazard for hazard in hazards if hazard.get_type() == HazardTypes.ENVIRONMENTAL]
+    other_hazards = [hazard for hazard in hazards if hazard.get_type() == HazardTypes.OTHER]
+    return physical_hazards, health_hazards, environmental_hazards, other_hazards, msds_url, further_information
 
 
 positive = 'Yes'
