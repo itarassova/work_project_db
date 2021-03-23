@@ -23,5 +23,12 @@ def insert_hazard(hazard):
     cursor.execute(''' INSERT INTO HAZARDS (hazard_type, hazard_code, hazard_description) VALUES (?, ?, ?), () ''', (hazard.get_type(), hazard.code, hazard.warning_line))
     conn.commit()
 
+def compound_in_database(compound):
+    cursor.execute(''' SELECT cas, name FROM REAGENTS_CAS  WHERE cas = ? OR name = ?''', (compound.cas, compound.name))
+    result = cursor.fetchone()
+    if result:
+        
+
+
 
 
