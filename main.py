@@ -14,7 +14,7 @@ from hazard import Hazard, HazardTypes
 
 start = time.time()
 
-wb = load_workbook(filename='InventoryExport.xlsx')
+wb = load_workbook(filename='InventoryExportFinal.xlsx')
 ws = wb.active
 
 export_workbook = Workbook()
@@ -125,7 +125,7 @@ for row in ws.iter_rows(min_row=2, values_only=True):
         count_issues_worksheet += 1
 
 
-row_number = 17
+row_number = 2
 for compound in substances:
     try:
         locations = substances[compound]
@@ -173,7 +173,7 @@ for compound in substances:
         count_issues_worksheet += 1
 
 
-export_workbook.save(filename="template_filled.xlsx")
+export_workbook.save(filename="Biocity_output.xlsx")
 issues_workbook.save(filename="issues_output.xlsx")
 end = time.time()
 log.info("Execution took: {}", str(end-start))
