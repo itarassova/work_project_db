@@ -36,7 +36,7 @@ class Cache:
 
                         CREATE TABLE HAZARDS (
             [hazard_id] INTEGER PRIMARY KEY,
-            [hazard_type] text, [hazard_code] text,  
+            [hazard_code] text,  
             [hazard_description] text 
             );
 
@@ -48,43 +48,57 @@ class Cache:
 
         self.conn.commit()
 
-    def get_compound_by_cas(self, compound):
+    def __get_compound_by_cas(self, compound):
     
         self.cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE cas = ?''', [compound.cas])
         return self.cursor.fetchall()
 
-    def get_compound_by_name(self, compound):
+    def __get_compound_by_name(self, compound):
     
         self.cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE name = ?''', [compound.name])
         return self.cursor.fetchall()
 
-    def insert_compound(self, compound):
+    def get_compound_from_db(self, compound):
+
         if compound.cas:
-            reagent_list = self.get_compound_by_cas(compound)
-        else: 
-            reagent_list = self.get_compound_by_name(compound)
+            result = self.__get_compound_by_cas(compound)
+        else:
+            result = self.__get_compound_by_name(compound)
+        if len(result) == 1:
+            reagent_row = result[0]
+            return reagent_row[2]
+        if len(result) < 1:
+            return None
+        if len(result) > 1:
+            raise ValueError('Duplicate values in the database')
+
+    def get_hazards_from_reagent_id(self, reagent_id):
+        result = self.cursor.execute(''' 
+SELECT HAZARDS.hazard_id, HAZARDS.hazard_code, HAZARDS.hazard_description  FROM REAGENTS_HAZARDS
+LEFT JOIN HAZARDS on REAGENTS_HAZARDS.hazard_id = HAZARDS.hazard_id WHERE REAGENTS_HAZARDS.reagent_id = ?''', [reagent_id])
+        hazards = [Hazard(code = element[0], warning_line = element[2]) for element in result] 
+        return hazards
+
+
+    def get_hazard_from_db(self, hazard):
+        self.cursor.execute(''' SELECT hazard_code, hazard_description, hazard_id FROM HAZARDS WHERE hazard_code = ?''', [hazard.code])
+        return self.cursor.fetchall()
+    
+    def insert_compound_hazard(self, compound):
+
+        reagent_list = self.get_compound_from_db(compound)
 
         if not reagent_list:        
             self.cursor.execute(''' INSERT INTO REAGENTS_CAS (cas, name) VALUES (?, ?) ''', (compound.cas, compound.name))
             self.conn.commit()
-        
-    
-    def get_hazard_from_db(self, hazard):
-        self.cursor.execute(''' SELECT hazard_code, hazard_description, hazard_type, hazard_id FROM HAZARDS WHERE hazard_code = ?''', [hazard.code])
-        return self.cursor.fetchall()
-    
-    
-    
-
-    def insert_hazard(self, hazard, compound):
-        hazard_list = self.get_hazard_from_db(hazard)
-        
-        if not hazard_list:
             result = get_hazards(compound)
             hazards = result[0]
             for hazard in hazards:
-                self.cursor.execute(''' INSERT INTO HAZARDS (hazard_type, hazard_code, hazard_description) VALUES (?, ?, ?) ''', (hazard.get_type(), hazard.code, hazard.warning_line))
+                self.cursor.execute(''' INSERT INTO HAZARDS (hazard_code, hazard_description) VALUES (?, ?) ''', (hazard.code, hazard.warning_line))
                 self.conn.commit()
+        
+    
+
                
 
 wb = load_workbook(filename='trial_input.xlsx')
@@ -107,7 +121,7 @@ for row in ws.iter_rows(min_row=2, values_only=True):
 cache = Cache(db_name)
 
 for substance in substances:
-    cache.insert_compound(substance)
+    cache.insert_compound_hazard(substance)
 
 
 

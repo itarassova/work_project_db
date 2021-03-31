@@ -19,31 +19,31 @@ class CacheTest(unittest.TestCase):
     def setUpClass(cls):
         cls.cache = Cache(':memory:')
 
-    def test_insert_compound(self):
-        test_compound = Compound('103-63-9', '(2-Bromoethyl)benzene')
-        self.cache.insert_compound(test_compound)
-        result = self.cache.get_compound_by_cas(test_compound)
-        self.assertEqual(len(result), 1)
-        query_tuple = result[0]
-        self.assertEqual((query_tuple[0], query_tuple[1]), (test_compound.cas, test_compound.name))
+    #def test_insert_compound(self):
+        #test_compound = Compound('103-63-9', '(2-Bromoethyl)benzene')
+        #self.cache.insert_compound_hazard(test_compound)
+        #result = self.cache.get_compound_from_db(test_compound)
+        #self.assertEqual(len(result), 1)
+        #query_tuple = result[0]
+        #self.assertEqual((query_tuple[0], query_tuple[1]), (test_compound.cas, test_compound.name))
 
 
-    def test_insert_duplicate_compound(self):
-        test_compound = Compound('103-63-9', '(2-Bromoethyl)benzene')
-        self.cache.insert_compound(test_compound)
-        self.cache.insert_compound(test_compound)
-        result = self.cache.get_compound_by_cas(test_compound)
-        self.assertEqual(len(result), 1)
-        query_tuple = result[0]
-        self.assertEqual((query_tuple[0], query_tuple[1]), (test_compound.cas, test_compound.name))
+    #def test_insert_duplicate_compound(self):
+        #test_compound = Compound('103-63-9', '(2-Bromoethyl)benzene')
+        #self.cache.insert_compound_hazard(test_compound)
+        #self.cache.insert_compound_hazard(test_compound)
+        #result = self.cache.get_compound_from_db(test_compound)
+        #self.assertEqual(len(result), 1)
+        #query_tuple = result[0]
+        #self.assertEqual((query_tuple[0], query_tuple[1]), (test_compound.cas, test_compound.name))
 
-    def test_insert_hazard(self):
-        test_hazard = Hazard('H315', 'Causes skin irritation')
-        test_compound = Compound('99646-28-3', '( R )-Tol-BINAP')
-        self.cache.insert_hazard(test_hazard, test_compound)
-        result = self.cache.get_hazard_from_db(test_hazard)
-        self.assertEqual(len(result), 1)
-        query_tuple = result[0]
-        self.assertEqual((query_tuple[0], query_tuple[1], query_tuple[2]), (test_hazard.code, test_hazard.warning_line, test_hazard.get_type()))
+    def test_insert_compound_hazard(self):
+        test_compound = Compound('5192-03-0', '5-Aminoindole')
+        result_compound = self.cache.get_compound_from_db(test_compound)
+        self.assertEqual(result_compound, 1)
+        hazard_for_test_compound = Hazard('H315', '(100%): Causes skin irritation ')
+        result_hazard = self.cache.get_hazard_from_db(hazard_for_test_compound)
+        hazard_output = result_hazard[0]
+        self.assertEqual((hazard_output[0], hazard_output[1]), (hazard_for_test_compound.code, hazard_for_test_compound.warning_line))
         
     

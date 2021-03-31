@@ -10,21 +10,7 @@ import logging as log
 from quantity import Quantity
 from compound import Compound
 from hazard import Hazard, HazardTypes
-
-
-start = time.time()
-
-wb = load_workbook(filename='InventoryExportFinal.xlsx')
-ws = wb.active
-
-export_workbook = Workbook()
-export_worksheet = export_workbook.active
-
-issues_workbook = Workbook()
-issues_worksheet = issues_workbook.active
-
-count_issues_worksheet = 1
-
+from sql import Cache
 
 def get_room_from_location(location):
     location_split = location.split('>')[1]
@@ -77,11 +63,6 @@ def get_hazards(compound):
     other_hazards = [hazard for hazard in hazards if hazard.get_type() == HazardTypes.OTHER]
     return physical_hazards, health_hazards, environmental_hazards, other_hazards, msds_url, further_information
 
-
-positive = 'Yes'
-negative = 'No'
-
-
 def is_explosive(list):
     not_explosive_290 = 'H290'
     not_explosive_281 = 'H281'
@@ -90,12 +71,26 @@ def is_explosive(list):
         hazard_codes_list = [(warning_line[:4]) for warning_line in list]
         for hazard_code in hazard_codes_list:
             if not_explosive_290.casefold() != hazard_code.casefold() and not_explosive_281.casefold() != hazard_code.casefold():
-                return positive
-    return negative
+                return True
+    return False
 
+start = time.time()
+
+wb = load_workbook(filename='InventoryExportFinal.xlsx')
+ws = wb.active
+
+export_workbook = Workbook()
+export_worksheet = export_workbook.active
+
+issues_workbook = Workbook()
+issues_worksheet = issues_workbook.active
+
+count_issues_worksheet = 1    
 
 # substances = {"1234-56-78": {"Room 1": "15 ml", "Room 2": "30 ml"}, "9876-5-32" {"Room 1": "15 g", "Room 2": "30 g"}}
 substances = {}
+
+cache = Cache('Charnwood_inventory_back-up.db')
 
 read_row_index = 0
 for row in ws.iter_rows(min_row=2, values_only=True):
@@ -128,11 +123,12 @@ for row in ws.iter_rows(min_row=2, values_only=True):
 row_number = 2
 for compound in substances:
     try:
+        compound_in_db = cache.get_compound_from_db(compound)
         locations = substances[compound]
         try:
             physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url, further_information = get_hazards(
                 compound)
-            explosive = is_explosive(physical_warning_lines)
+            explosive = "Yes" if is_explosive(physical_warning_lines) else "No"
             physical_hazards = '\n'.join(physical_warning_lines)
             health_hazards = '\n'.join(health_warning_lines)
             environmental_hazards = '\n'.join(environmental_warning_lines)
