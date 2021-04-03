@@ -12,7 +12,7 @@ from compound import Compound
 from hazard import Hazard, HazardTypes, get_hazards, get_cid
 from pathlib import Path
 
-db_name = 'Charnwood_inventory_back-up.db'
+db_name = 'Charnwood_inventory_back-up_1.db'
 
 class Cache:
     def __init__(self,db_name):
@@ -29,15 +29,15 @@ class Cache:
         
         self.cursor.executescript('''CREATE TABLE REAGENTS_CAS (
             [reagent_id] INTEGER PRIMARY KEY,
-            [cas] text, 
-            [name] text
+            [cas] text UNIQUE, 
+            [name] text UNIQUE
             );
 
 
                         CREATE TABLE HAZARDS (
             [hazard_id] INTEGER PRIMARY KEY,
-            [hazard_code] text,  
-            [hazard_description] text 
+            [hazard_code] text UNIQUE,  
+            [hazard_description] text UNIQUE 
             );
 
                         CREATE TABLE REAGENTS_HAZARDS (
