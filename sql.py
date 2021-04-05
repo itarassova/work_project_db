@@ -11,8 +11,11 @@ import sqlite3
 from compound import Compound
 from hazard import Hazard, HazardTypes, get_hazards, get_cid
 from pathlib import Path
+import logging as log
 
-db_name = 'Charnwood_inventory_back-up_1.db'
+log.basicConfig(level=log.INFO)
+
+db_name = 'Charnwood_inventory_back-up_really_large_number.db'
 
 class Cache:
     def __init__(self,db_name):
@@ -22,15 +25,17 @@ class Cache:
         self.cursor = self.conn.cursor()
         if new_db:
             self.__create_schema()
+            log.info('Schema created')
         
             
 
     def __create_schema(self):
-        
+        log.info("database schema creation")
         self.cursor.executescript('''CREATE TABLE REAGENTS_CAS (
             [reagent_id] INTEGER PRIMARY KEY,
             [cas] text UNIQUE, 
-            [name] text UNIQUE
+            [name] text UNIQUE,
+            [found_in_pubchem] text
             );
 
 
@@ -61,13 +66,19 @@ class Cache:
     def get_compound_from_db(self, compound):
 
         if compound.cas:
-            result = self.__get_compound_by_cas(compound)
+            result_cas = self.__get_compound_by_cas(compound)
+            if not result_cas:
+                result_name = self.__get_compound_by_name(compound)
+        if result_cas:
+            result = result_cas
         else:
-            result = self.__get_compound_by_name(compound)
+            result = result_name
         if len(result) == 1:
             reagent_row = result[0]
+            log.info('%s is in the database', reagent_row[2])
             return reagent_row[2]
         if len(result) < 1:
+            log.info('%s not in dabase', compound.cas)
             return None
         if len(result) > 1:
             raise ValueError('Duplicate values in the database')
@@ -89,13 +100,20 @@ LEFT JOIN HAZARDS on REAGENTS_HAZARDS.hazard_id = HAZARDS.hazard_id WHERE REAGEN
         reagent_list = self.get_compound_from_db(compound)
 
         if not reagent_list:        
-            self.cursor.execute(''' INSERT INTO REAGENTS_CAS (cas, name) VALUES (?, ?) ''', (compound.cas, compound.name))
-            self.conn.commit()
             result = get_hazards(compound)
-            hazards = result[0]
-            for hazard in hazards:
-                self.cursor.execute(''' INSERT INTO HAZARDS (hazard_code, hazard_description) VALUES (?, ?) ''', (hazard.code, hazard.warning_line))
+            no_cid = 'No CID found'
+            if result == no_cid:
+                self.cursor.execute(''' INSERT INTO REAGENTS_CAS (cas, name, found_in_pubchem) VALUES (?, ?, ?) ''', (compound.cas, compound.name,'No'))
                 self.conn.commit()
+            else:
+                self.cursor.execute(''' INSERT INTO REAGENTS_CAS (cas, name, found_in_pubchem) VALUES (?, ?, ?) ''', (compound.cas, compound.name,'Yes',))
+                self.conn.commit()
+                hazards = result[0]
+                log.info('%s', hazards)
+                for hazard in hazards:
+                    if not self.get_hazard_from_db(hazard):
+                        self.cursor.execute(''' INSERT INTO HAZARDS (hazard_code, hazard_description) VALUES (?, ?) ''', (hazard.code, hazard.warning_line))
+                        self.conn.commit()
         
     
 
@@ -122,6 +140,7 @@ cache = Cache(db_name)
 
 for substance in substances:
     cache.insert_compound_hazard(substance)
+    log.info('Substance %s inserted into the database', read_row_index)
 
 
 

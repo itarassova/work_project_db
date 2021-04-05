@@ -15,17 +15,24 @@ def get_cid(synonum):
     cid = cid_resp.json()["IdentifierList"]["CID"][0]
     log.info(cid)
     return cid
+   
+
 
 
 def get_hazards(compound):
     try:
-        cid = get_cid(compound.cas)
+        try:
+            cid = get_cid(compound.cas)
+        except Exception as e:
+            cid = get_cid(compound.name)
     except Exception as e:
-        cid = get_cid(compound.name)
+        no_cid = 'No CID found'
+        return no_cid
+   
     msds_url = "https://pubchem.ncbi.nlm.nih.gov/compound/{}#datasheet=LCSS".format(
-        compound.cas)
+            compound.cas)
     compound_url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/{}/JSON".format(
-        cid)
+            cid)
     resp = requests.get(url=compound_url)
     data = resp.json()
     filter_expression = parser.parse(
@@ -48,6 +55,7 @@ def get_hazards(compound):
     environmental_hazards = [hazard for hazard in hazards if hazard.get_type() == HazardTypes.ENVIRONMENTAL]
     other_hazards = [hazard for hazard in hazards if hazard.get_type() == HazardTypes.OTHER]
     return hazards, physical_hazards, health_hazards, environmental_hazards, other_hazards, msds_url, further_information
+        
 
 class HazardTypes(Enum):
     PHYSICAL = auto() #auto()
