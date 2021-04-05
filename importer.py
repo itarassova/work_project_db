@@ -1,0 +1,34 @@
+import json
+import requests
+from jsonpath_ng import jsonpath
+from jsonpath_ng.ext import parser
+from openpyxl import Workbook, load_workbook
+import time
+import logging as log
+from compound import Compound
+from hazard import Hazard, HazardTypes
+from sql import Database
+from pubchem import get_hazards
+
+start = time.time()
+
+wb = load_workbook(filename='InventoryExportFinal.xlsx')
+ws = wb.active
+
+database = Database('Charnwood_inventory_back-up.db')
+
+read_row_index = 0
+for row in ws.iter_rows(min_row=2, values_only=True):
+    read_row_index += 1
+    try:
+        name = row[0]
+        cas = row[1]
+        compound = Compound(cas, name)
+        if read_row_index % 100 == 0:
+            log.info("Reading record {}", str(read_row_index))
+    except Exception as e:
+        log.error(e, exc_info=True)
+    compound_in_db = database.get_reagent_id_from_db(compound)
+    if not compound_in_db:
+        hazards, _ = get_hazards(compound)
+        database.insert_compound_hazard(compound) 

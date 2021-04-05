@@ -17,7 +17,7 @@ log.basicConfig(level=log.INFO)
 
 db_name = 'Charnwood_inventory_back-up_really_large_number.db'
 
-class Cache:
+class Database:
     def __init__(self,db_name):
         db_file = Path(db_name)
         new_db = db_name == ':memory:' or not db_file.is_file()
@@ -63,7 +63,21 @@ class Cache:
         self.cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE name = ?''', [compound.name])
         return self.cursor.fetchall()
 
-    def get_compound_from_db(self, compound):
+    def __insert_compound(self,compound: Compound) -> int:
+        self.cursor.execute(''' INSERT INTO REAGENTS_CAS (cas, name, found_in_pubchem) VALUES (?, ?, ?) ''', (compound.cas, compound.name,'Yes'))
+        reagent_id = self.cursor.lastrowid
+        self.conn.commit()
+        return reagent_id
+
+    def __insert_hazard(self, hazard: Hazard) -> int:
+        self.cursor.execute(''' INSERT INTO HAZARDS (hazard_code, hazard_description) VALUES (?, ?) ''', (hazard.code, hazard.warning_line))
+        hazard_id = self.cursor.lastrowid
+        self.conn.commit()
+        return hazard_id
+
+        
+
+    def get_reagent_id_from_db(self, compound: Compound) -> int:
 
         if compound.cas:
             result_cas = self.__get_compound_by_cas(compound)
@@ -91,30 +105,40 @@ LEFT JOIN HAZARDS on REAGENTS_HAZARDS.hazard_id = HAZARDS.hazard_id WHERE REAGEN
         return hazards
 
 
-    def get_hazard_from_db(self, hazard):
+    def get_hazard_from_db(self, hazard: Hazard) -> int:
         self.cursor.execute(''' SELECT hazard_code, hazard_description, hazard_id FROM HAZARDS WHERE hazard_code = ?''', [hazard.code])
-        return self.cursor.fetchall()
+        result = self.cursor.fetchall()
+        if len(result) == 1:
+            hazard_row = result[0]
+            log.info('%s is in the database', hazard_row[2])
+            return hazard_row[2]
+        if len(result) < 1:
+            log.info('%s not in dabase', hazard.code)
+            return None
+        if len(result) > 1:
+            raise ValueError('Duplicate values in the database')
+
+    def __reagent_id_for_compound(self, compound):
+        reagent_id = self.get_reagent_id_from_db(compound)
+        if reagent_id:
+            return reagent_id
+        return self.__insert_compound(compound)
+        # return reagent_id if reagent_id else self.__insert_compound(compound)
+
+    def __hazard_id_for_hazard(self, hazard):
+        hazard_id = self.get_hazard_from_db(hazard)
+        if hazard_id:
+            return hazard_id
+        return self.__insert_hazard(hazard)
     
-    def insert_compound_hazard(self, compound):
-
-        reagent_list = self.get_compound_from_db(compound)
-
-        if not reagent_list:        
-            result = get_hazards(compound)
-            no_cid = 'No CID found'
-            if result == no_cid:
-                self.cursor.execute(''' INSERT INTO REAGENTS_CAS (cas, name, found_in_pubchem) VALUES (?, ?, ?) ''', (compound.cas, compound.name,'No'))
-                self.conn.commit()
-            else:
-                self.cursor.execute(''' INSERT INTO REAGENTS_CAS (cas, name, found_in_pubchem) VALUES (?, ?, ?) ''', (compound.cas, compound.name,'Yes',))
-                self.conn.commit()
-                hazards = result[0]
-                log.info('%s', hazards)
-                for hazard in hazards:
-                    if not self.get_hazard_from_db(hazard):
-                        self.cursor.execute(''' INSERT INTO HAZARDS (hazard_code, hazard_description) VALUES (?, ?) ''', (hazard.code, hazard.warning_line))
-                        self.conn.commit()
+    def insert_compound_hazard(self, compound, hazards: list[Hazard]):
+        reagent_id = self.__reagent_id_for_compound(compound)        
+        for hazard in hazards:
+            hazard_id = self.__hazard_id_for_hazard(hazard)
+            self.cursor.execute(''' INSERT INTO REAGENTS_HAZARDS (reagent_id, hazard_id) VALUES (?, ?) ''', (reagent_id, hazard_id))
+            self.conn.commit()
         
+  
     
 
                
@@ -136,7 +160,7 @@ for row in ws.iter_rows(min_row=2, values_only=True):
 
 
 
-cache = Cache(db_name)
+cache = Database(db_name)
 
 for substance in substances:
     cache.insert_compound_hazard(substance)
