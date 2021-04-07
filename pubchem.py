@@ -4,7 +4,6 @@ from jsonpath_ng import jsonpath
 from jsonpath_ng.ext import parser
 from compound import Compound
 from hazard import Hazard, HazardTypes
-from sql import Database
 import logging as log
 
 

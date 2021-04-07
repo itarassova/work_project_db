@@ -1,5 +1,3 @@
-#from main import get_cid
-#from main import get_hazards
 from enum import Enum, auto
 import requests
 import logging as log
@@ -8,10 +6,9 @@ import requests
 from jsonpath_ng import jsonpath
 from jsonpath_ng.ext import parser
 
-        
 
 class HazardTypes(Enum):
-    PHYSICAL = auto() #auto()
+    PHYSICAL = auto()
     HEALTH = auto()
     ENVIRONMENTAL = auto()
     OTHER = auto()
@@ -23,7 +20,7 @@ class Hazard:
         self.warning_line = warning_line
         
 
-    def get_type(self):
+    def get_type(self) -> HazardTypes:
         if self.code[1] == '2':
             return HazardTypes.PHYSICAL
         if self.code[1] == '3':

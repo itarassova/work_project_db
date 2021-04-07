@@ -10,7 +10,7 @@ import logging as log
 from quantity import Quantity
 from compound import Compound
 from hazard import Hazard, HazardTypes
-from sql import Cache
+from sql import Database
 
 def get_room_from_location(location):
     location_split = location.split('>')[1]
@@ -23,16 +23,7 @@ def get_room_from_location(location):
 
 
 
-def is_explosive(list : list[Hazard]) -> bool:
-    not_explosive_290 = 'H290'
-    not_explosive_281 = 'H281'
 
-    if list:
-        hazard_codes_list = [(warning_line[:4]) for warning_line in list]
-        for hazard_code in hazard_codes_list:
-            if not_explosive_290.casefold() != hazard_code.casefold() and not_explosive_281.casefold() != hazard_code.casefold():
-                return True
-    return False
 
 start = time.time()
 
@@ -50,7 +41,7 @@ count_issues_worksheet = 1
 # substances = {"1234-56-78": {"Room 1": "15 ml", "Room 2": "30 ml"}, "9876-5-32" {"Room 1": "15 g", "Room 2": "30 g"}}
 substances = {}
 
-cache = Cache('Charnwood_inventory_back-up.db')
+cache = Database('Charnwood_inventory_back-up.db')
 
 read_row_index = 0
 for row in ws.iter_rows(min_row=2, values_only=True):
@@ -83,7 +74,7 @@ for row in ws.iter_rows(min_row=2, values_only=True):
 row_number = 2
 for compound in substances:
     try:
-        compound_in_db = cache.get_compound_from_db(compound)
+        compound_in_db = cache.get_reagent_id_from_db(compound)
         if not compound_in_db:
             locations = substances[compound]
             cache.insert_compound_hazard(compound) 
@@ -135,3 +126,26 @@ export_workbook.save(filename="Biocity_output.xlsx")
 issues_workbook.save(filename="issues_output.xlsx")
 end = time.time()
 log.info("Execution took: {}", str(end-start))
+
+wb = load_workbook(filename='trial_input.xlsx')
+ws = wb.active
+substances = []
+    
+read_row_index = 0
+for row in ws.iter_rows(min_row=2, values_only=True):
+    read_row_index += 1
+    try:
+        name = row[0]
+        cas = row[1]
+        compound = Compound(cas, name)
+        substances.append(compound)
+    except Exception as e:
+        log.error(e, exc_info=True)
+
+
+
+cache = Database(db_name)
+
+for substance in substances:
+    cache.insert_compound_hazard(substance)
+    log.info('Substance %s inserted into the database', read_row_index)
