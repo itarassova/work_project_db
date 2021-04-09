@@ -99,7 +99,7 @@ class Database:
         result = self.cursor.execute(''' 
 SELECT HAZARDS.hazard_id, HAZARDS.hazard_code, HAZARDS.hazard_description  FROM REAGENTS_HAZARDS
 LEFT JOIN HAZARDS on REAGENTS_HAZARDS.hazard_id = HAZARDS.hazard_id WHERE REAGENTS_HAZARDS.reagent_id = ?''', [reagent_id])
-        hazards = [Hazard(code = element[0], warning_line = element[2]) for element in result] 
+        hazards = [Hazard(code = element[1], warning_line = element[2]) for element in result] 
         return hazards
 
 
