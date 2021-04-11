@@ -20,7 +20,7 @@ class Hazard:
         self.warning_line = warning_line
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.code == other.code and self.warning_line == other.warning_line
+        return isinstance(other, self.__class__) and self.__key() == other.__key()
 
     def __key(self):
         return self.code

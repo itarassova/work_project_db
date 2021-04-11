@@ -13,8 +13,6 @@ class CacheTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.cache = Database(':memory:')
-
-    
     
     def test_get_hazards_from_compound(self):
         test_compound = Compound('141-97-9', 'Ethyl acetoacetate')
