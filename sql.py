@@ -19,7 +19,7 @@ class Database:
     def __init__(self,db_name):
         db_file = Path(db_name)
         new_db = db_name == ':memory:' or not db_file.is_file()
-        self.conn = sqlite3.connect(db_name)
+        self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.cursor = self.conn.cursor()
         if new_db:
             self.__create_schema()
@@ -51,10 +51,21 @@ class Database:
 
         self.conn.commit()
 
-    def __get_compound_by_cas(self, compound):
+    def __get_compound_by_cas(self, compound: Compound) -> tuple:
     
         self.cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE cas = ?''', [compound.cas])
         return self.cursor.fetchall()
+
+    def get_query_by_input(self, input: str):
+        query = self.cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE cas = ?''', [input])
+        result = self.cursor.fetchall()[0]
+        if not result:
+            query = self.cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE name = ?''', [input])
+            result = self.cursor.fetchall()[0]
+        compound = Compound(cas=result[0], name=result[1])
+        reagent_id = result[2]
+        return compound, reagent_id
+
 
     def __get_compound_by_name(self, compound):
     
