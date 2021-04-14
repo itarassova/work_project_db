@@ -9,21 +9,8 @@ import time
 import logging as log
 from quantity import Quantity
 from compound import Compound
-
-
-start = time.time()
-
-wb = load_workbook(filename='inventoryexport_trial_100.xlsx')
-ws = wb.active
-
-export_workbook = Workbook()
-export_worksheet = export_workbook.active
-
-issues_workbook = Workbook()
-issues_worksheet = issues_workbook.active
-
-count_issues_worksheet = 1
-
+from hazard import Hazard, HazardTypes
+from sql import Database
 
 def get_room_from_location(location):
     location_split = location.split('>')[1]
@@ -35,69 +22,26 @@ def get_room_from_location(location):
     return room
 
 
-def get_cid(synonum):
-    cid_url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{}/cids/JSON".format(
-        synonum)
-    cid_resp = requests.get(url=cid_url)
-    cid = cid_resp.json()["IdentifierList"]["CID"][0]
-    log.info(cid)
-    return cid
 
 
-def get_hazards(compound):
-    try:
-        cid = get_cid(compound.cas)
-    except Exception as e:
-        cid = get_cid(compound.name)
-    msds_url = "https://pubchem.ncbi.nlm.nih.gov/compound/{}#datasheet=LCSS".format(
-        compound.cas)
-    compound_url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/{}/JSON".format(
-        cid)
-    resp = requests.get(url=compound_url)
-    data = resp.json()
-    filter_expression = parser.parse(
-        '$.Record.Section[?(@.TOCHeading=="Safety and Hazards")].Section[0].Section[0].Information[2].Value.StringWithMarkup[*].String')
-    health_warning_lines = []
-    physical_warning_lines = []
-    environmental_warning_lines = []
-    other_hazards = []
-    further_information = []
-    for warning_line in filter_expression.find(data):
-        log.info(warning_line.value)
-        warning_string = warning_line.value
-        comment_start = warning_string.find("[")
-        if comment_start != -1:
-            further_information.append(warning_string[comment_start:])
-            warning_string = warning_string[:comment_start]
-        if warning_string[1] == '2':
-            physical_warning_lines.append(warning_string)
-        elif warning_string[1] == '3':
-            health_warning_lines.append(warning_string)
-        elif warning_string[1] == '4':
-            environmental_warning_lines.append(warning_string)
-        else:
-            other_hazards.append(warning_string)
-    return physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url, further_information
 
+start = time.time()
 
-positive = 'Yes'
-negative = 'No'
+wb = load_workbook(filename='InventoryExportFinal.xlsx')
+ws = wb.active
 
+export_workbook = Workbook()
+export_worksheet = export_workbook.active
 
-def is_explosive(list):
-    not_explosive_290 = 'H290'
-    not_explosive_281 = 'H281'
+issues_workbook = Workbook()
+issues_worksheet = issues_workbook.active
 
-    if list:
-        hazard_codes_list = [(warning_line[:4]) for warning_line in list]
-        for hazard_code in hazard_codes_list:
-            if not_explosive_290.casefold() != hazard_code.casefold() and not_explosive_281.casefold() != hazard_code.casefold():
-                return positive
-    return negative
-
+count_issues_worksheet = 1    
 
 # substances = {"1234-56-78": {"Room 1": "15 ml", "Room 2": "30 ml"}, "9876-5-32" {"Room 1": "15 g", "Room 2": "30 g"}}
 substances = {}
+
+cache = Database('Charnwood_inventory_back-up.db')
 
 read_row_index = 0
 for row in ws.iter_rows(min_row=2, values_only=True):
@@ -127,14 +71,17 @@ for row in ws.iter_rows(min_row=2, values_only=True):
         count_issues_worksheet += 1
 
 
-row_number = 17
+row_number = 2
 for compound in substances:
     try:
-        locations = substances[compound]
+        compound_in_db = cache.get_reagent_id_from_db(compound)
+        if not compound_in_db:
+            locations = substances[compound]
+            cache.insert_compound_hazard(compound) 
         try:
             physical_warning_lines, health_warning_lines, environmental_warning_lines, other_hazards, msds_url, further_information = get_hazards(
                 compound)
-            explosive = is_explosive(physical_warning_lines)
+            explosive = "Yes" if is_explosive(physical_warning_lines) else "No"
             physical_hazards = '\n'.join(physical_warning_lines)
             health_hazards = '\n'.join(health_warning_lines)
             environmental_hazards = '\n'.join(environmental_warning_lines)
@@ -160,7 +107,7 @@ for compound in substances:
                              ] = str(environmental_hazards)
             #export_worksheet['F'+ str(row_number)] = str(other_hazards)
             export_worksheet['G' + str(row_number)] = str(msds_url)
-            export_worksheet['B' + str(row_number)] = str(room_location)
+            export_worksheet['B' + str(row_number)] = str(location)
             export_worksheet['K' + str(row_number)] = str(explosive)
             export_worksheet['D' + str(row_number)] = str(amount)
             export_worksheet['E' + str(row_number)] = str('Wet chemistry')
@@ -175,7 +122,30 @@ for compound in substances:
         count_issues_worksheet += 1
 
 
-export_workbook.save(filename="test_output_100.xlsx")
-issues_workbook.save(filename="test_issues_output.xlsx")
+export_workbook.save(filename="Biocity_output.xlsx")
+issues_workbook.save(filename="issues_output.xlsx")
 end = time.time()
 log.info("Execution took: {}", str(end-start))
+
+wb = load_workbook(filename='trial_input.xlsx')
+ws = wb.active
+substances = []
+    
+read_row_index = 0
+for row in ws.iter_rows(min_row=2, values_only=True):
+    read_row_index += 1
+    try:
+        name = row[0]
+        cas = row[1]
+        compound = Compound(cas, name)
+        substances.append(compound)
+    except Exception as e:
+        log.error(e, exc_info=True)
+
+
+
+cache = Database(db_name)
+
+for substance in substances:
+    cache.insert_compound_hazard(substance)
+    log.info('Substance %s inserted into the database', read_row_index)
