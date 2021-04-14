@@ -2,9 +2,25 @@
 <html>
    <body>
    
-      <h1>Here is the compound</h1>
+      <h1>Here are the compound CAS {{ cas }} and  name {{ name}}</h1>
       <p>This is the reagent id  for the requested compound {{ reagent_id }}</p>
-      <p>Compound CAS is {{ cas }} and compound name is {{ name}} </p>
+
+      <table>
+         <thead>
+            <th>H-code</th>
+            <th>Warning</th>
+         </thead>
+        
+         <tbody>
+         {%- for row in items %}
+            <tr>
+               <td>{{ code }}</td>
+               <td>{{ warning }}</td>
+            </tr>
+         {%- endfor %}
+         </tbody>
+         </table>
+      
       
    </body>
 </html>
