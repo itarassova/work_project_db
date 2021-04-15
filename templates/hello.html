@@ -3,24 +3,20 @@
    <body>
    
       <h1>Here are the compound CAS {{ cas }} and  name {{ name}}</h1>
-      <p>This is the reagent id  for the requested compound {{ reagent_id }}</p>
-
-      <table>
-         <thead>
-            <th>H-code</th>
-            <th>Warning</th>
-         </thead>
-        
-         <tbody>
-         {%- for row in items %}
-            <tr>
-               <td>{{ code }}</td>
-               <td>{{ warning }}</td>
-            </tr>
-         {%- endfor %}
-         </tbody>
-         </table>
+      <p>This is the reagent id  for the requested compound {{ reagent_id }}</p>  
       
+      <table style="width:100%", border="1">
+         <tr>
+           <th>H-code</th>
+           <th>Warning</th>
+         </tr>
+         {% for haz in hazards%} 
+         <tr> 
+            <td> {{haz.code}}</td>
+            <td> {{haz.warning_line}}</td>
+         </tr>
+         {% endfor %}
+      </table>
       
    </body>
 </html>

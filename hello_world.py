@@ -2,8 +2,6 @@ from flask import Flask, render_template, g
 import sqlite3
 from compound import Compound
 from hazard import Hazard
-from sql import Database
-
 
 
 def get_db():
@@ -12,8 +10,29 @@ def get_db():
         db = g._database = sqlite3.connect(DATABASE)
     return db
 
+def get_compound_by_input(input: str, cursor) -> (Compound, int):
+    query = cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE cas = ?''', [input])
+    query_result = cursor.fetchall()
+    if not query_result:
+        query = cursor.execute(''' SELECT cas, name, reagent_id FROM REAGENTS_CAS WHERE name = ?''', [input])
+        query_result = cursor.fetchall()
+        if not query_result:
+            return None, None
+    result = query_result[0]   
+    compound = Compound(cas=result[0], name=result[1])
+    reagent_id = result[2] 
+    return compound, reagent_id
+
+def get_hazards_by_reagent_id(reagent_id: int, cursor) -> [Hazard]:
+    query_hazards = cursor.execute(''' 
+SELECT HAZARDS.hazard_id, HAZARDS.hazard_code, HAZARDS.hazard_description  FROM REAGENTS_HAZARDS
+LEFT JOIN HAZARDS on REAGENTS_HAZARDS.hazard_id = HAZARDS.hazard_id WHERE REAGENTS_HAZARDS.reagent_id = ?''', [reagent_id])
+    hazards = [Hazard(code = element[1], warning_line = element[2]) for element in query_hazards] 
+    return hazards
+    
+
+
 DATABASE = 'Charnwood_inventory_back-up_really_large_number.db'
-cache = Database(DATABASE)
 
 app = Flask(__name__)
 
@@ -24,16 +43,15 @@ def close_connection(exception):
         db.close()
 
 
-
 @app.route('/compound/<input>')
 def show_compound(input):
-    cur = get_db().cursor()
-    compound, reagent_id = cache.get_query_by_input(input)
-    hazards = cache.get_hazards_from_compound(compound)
-    list_of_hazards = [{hazard.code : hazard.warning_line} for hazard in hazards]
-    codes = [hazard.code for hazard in hazards]
-    warnings = [hazard.warning_line for hazard in hazards]
+    cursor = get_db().cursor()
+    compound, reagent_id = get_compound_by_input(input, cursor)
+    if not compound:
+        return render_template('notfound.html', identifier = input, db = DATABASE)
+    hazards = get_hazards_by_reagent_id(reagent_id, cursor)     
+    return render_template('hello.html', cas = compound.cas, name = compound.name, reagent_id = reagent_id, hazards = hazards)  
 
-    return render_template('hello.html', cas = compound.cas, name = compound.name, reagent_id = reagent_id, items = list_of_hazards, code =  )  
+
 if __name__ == '__main__':
     app.run(debug = True)
