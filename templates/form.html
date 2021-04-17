@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+   <body>
+        <table style="width:100%", border="1">
+            <tr>
+                <th colspan="4">Electronic Laboratory Notebook Chemical Risk Assessment</th>
+            </tr>
+            <tr>
+                <th> </th>
+                <th> Reagents/Solvents </th>
+                <th> Major hazards (H-codes) </th>
+                <th> Major hazards (Warnings) </th>
+            </tr>
+        </tr>
+            {% for num in reagents%} 
+            <tr> 
+                <td> {{num[0]}}</td>
+                <td> {{num[1]}}</td>
+                <td> {{num[2]}}</td>  
+                <td> {{num[3]}}</td>              
+            </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="4"> NOTES: ALL chemicals should be regarded as harmful on contact with skin, eyes or on ingestion
+                    ALL reactions to be carried out in accordance with company H&amp;S legislation </td>
+            </tr>
+            <tr>
+                <td colspan="2"> Special safety requirements (including scrubbing, disposal and spillage strategy) </td>
+                <td colspan="2"> (Enter your text here) </td>
+            </tr>
+            <tr>
+            <td colspan="2"> Refer to COSHH assessment record Nos </td>                            
+            <td colspan="2"> (Enter your text here) </td>
+            </tr>
+            <tr>
+                <td> Signature </td>
+                <td> (enter sgnature)</td>
+                <td> Date </td>  
+                <td>  (enter date) </td> 
+            </tr>
+        </table>
+      </body>
+</html> 
