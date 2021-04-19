@@ -1,4 +1,4 @@
-from flask import Flask, render_template, g
+from flask import Flask, render_template, g, request
 import sqlite3
 from compound import Compound
 from hazard import Hazard
@@ -43,14 +43,22 @@ def close_connection(exception):
         db.close()
 
 
-@app.route('/compound/<input>')
-def show_compound(input):
+@app.route('/', methods=['GET'])
+def form():
+    return render_template('form.html')
+
+@app.route('/form', methods=['GET'])
+def fill_form():
+    input= request.args.get('compound',)
     cursor = get_db().cursor()
     compound, reagent_id = get_compound_by_input(input, cursor)
     if not compound:
         return render_template('notfound.html', identifier = input, db = DATABASE)
-    hazards = get_hazards_by_reagent_id(reagent_id, cursor)     
-    return render_template('hello.html', cas = compound.cas, name = compound.name, reagent_id = reagent_id, hazards = hazards)  
+    hazards = get_hazards_by_reagent_id(reagent_id, cursor)
+    reagents = {} 
+    reagents[compound] = hazards
+   
+    return render_template('coshh.html', reagents = reagents, key = compound,)  
 
 
 if __name__ == '__main__':
