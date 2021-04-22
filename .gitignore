@@ -1,5 +1,5 @@
-.venv
 .vscode
 *.xlsx
 *.xlsm
 *.pyc
+__pycache__

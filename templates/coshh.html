@@ -11,14 +11,18 @@
                 <th> Major hazards (H-codes) </th>
                 <th> Major hazards (Warnings) </th>
             </tr>
-        </tr>
             {% for key in reagents.keys()%} 
             <tr> 
-                <td> {{loop.index}}</td>
-                <td> {{key.name}}</td>
-                <td> {{reagents[key].code}}</td>  
-                <td> {{reagents[key].warning_line}}</td>              
+                <td rowspan="{{(reagents[key]|count)+1}}">{{loop.index}}</td>
+                <td rowspan="{{(reagents[key]|count)+1}}"> {{key.name}}</td>
             </tr>
+                {% for haz in reagents[key]%}
+                <tr>
+                    <td>{{haz.code}}</td>                               
+                    <td>{{haz.warning_line}}</td> 
+                </tr>                
+                {% endfor%}              
+            
             {% endfor %}
             <tr>
                 <td colspan="4"> NOTES: ALL chemicals should be regarded as harmful on contact with skin, eyes or on ingestion
