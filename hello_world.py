@@ -2,6 +2,7 @@ from flask import Flask, render_template, g, request
 import sqlite3
 from compound import Compound
 from hazard import Hazard
+from datetime import date
 
 
 def get_db():
@@ -57,8 +58,9 @@ def fill_form():
     hazards = get_hazards_by_reagent_id(reagent_id, cursor)
     reagents = {} 
     reagents[compound] = hazards
+    mytime = date.today()
    
-    return render_template('coshh.html', reagents = reagents, key = compound,)  
+    return render_template('coshh.html', reagents = reagents, key = compound,date = mytime)  
 
 
 if __name__ == '__main__':
