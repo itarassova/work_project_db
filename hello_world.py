@@ -3,6 +3,7 @@ import sqlite3
 from compound import Compound
 from hazard import Hazard
 from datetime import date
+import json
 
 
 def get_db():
@@ -23,6 +24,23 @@ def get_compound_by_input(input: str, cursor) -> (Compound, int):
     compound = Compound(cas=result[0], name=result[1])
     reagent_id = result[2] 
     return compound, reagent_id
+
+
+def get_cas_list_from_input(input: str, cursor):
+    query = cursor.execute(''' SELECT cas FROM REAGENTS_CAS WHERE cas LIKE ? ORDER BY cas ASC''', [input+'%'])
+    query_result = cursor.fetchall()
+    if not query_result:
+        query = cursor.execute(''' SELECT cas FROM REAGENTS_CAS WHERE name = ? ORDER BY cas ASC''', [input+'%'])
+        query_result = cursor.fetchall()
+        if not query_result:
+            return None, None
+    cas_list = []
+    for query in query_result:
+        cas_list.append(query[0])
+
+    return cas_list
+
+
 
 def get_hazards_by_reagent_id(reagent_id: int, cursor) -> [Hazard]:
     query_hazards = cursor.execute(''' 
@@ -46,22 +64,46 @@ def close_connection(exception):
 
 @app.route('/', methods=['GET'])
 def form():
-    return render_template('form.html')
+    reagents = ['98-98-6', '110-86-1']
+    return render_template('form.html', compounds = reagents)
 
 @app.route('/form', methods=['GET'])
 def fill_form():
-    input= request.args.get('compound',)
+    # http://localhost:5000/form?compound+1=98-98-6&compound+2=110-86-1
+    # request.args = {"compound+1": "98-98-6", "compound+2":"110-86-1"}
+    # for key, value in request.args:
+    # for value in request.args.values():
+    value = request.args.get('compound',)
+    input = value.split(", ")
     cursor = get_db().cursor()
-    compound, reagent_id = get_compound_by_input(input, cursor)
-    if not compound:
-        return render_template('notfound.html', identifier = input, db = DATABASE)
-    hazards = get_hazards_by_reagent_id(reagent_id, cursor)
-    reagents = {} 
-    reagents[compound] = hazards
+    reagents = {}
+    for entry in input:
+        compound, reagent_id = get_compound_by_input(entry, cursor)
+        if not compound:
+            return render_template('notfound.html', identifier = input, db = DATABASE)
+        hazards = get_hazards_by_reagent_id(reagent_id, cursor)
+        reagents[compound] = hazards
     mytime = date.today()
    
-    return render_template('coshh.html', reagents = reagents, key = compound,date = mytime)  
+    return render_template('coshh.html', reagents = reagents, key = compound,date = mytime) 
 
+@app.route('/lookup', methods=['GET']) 
+
+def get_cas_list():
+    # http://localhost:5000/form?compound+1=98-98-6&compound+2=110-86-1
+    # request.args = {"compound+1": "98-98-6", "compound+2":"110-86-1"}
+    # for key, value in request.args:
+    # for value in request.args.values():
+    input = request.args.getlist('compound',)
+    cursor = get_db().cursor()
+    query_list = []
+    for entry in input:
+        query_list.extend(get_cas_list_from_input(entry, cursor))
+    if not query_list:
+        return render_template('notfound.html', identifier = input, db = DATABASE)
+    selector = json.dumps(query_list)
+
+    return selector
 
 if __name__ == '__main__':
     app.run(debug = True)
