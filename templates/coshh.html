@@ -1,25 +1,40 @@
 <!doctype html>
 <html>
    <body>
-        <table style="width:100%", border="1">
-            <tr>
+        <style>
+        table, th, td {
+
+            border: 1px solid black;
+            
+            border-collapse: collapse;
+            
+            }
+            
+            th, td {
+            
+            padding: 10px;
+            
+            }
+        </style>
+        <table>
+                <tr>
                 <th colspan="4">Electronic Laboratory Notebook Chemical Risk Assessment</th>
             </tr>
             <tr>
-                <th> </th>
-                <th> Reagents/Solvents </th>
-                <th> Major hazards (H-codes) </th>
-                <th> Major hazards (Warnings) </th>
+                <th style="width:100px"> Reagent number</th>
+                <th style="width:250px"> Reagents/Solvents </th>
+                <th style="width:250px"> Major hazards (H-codes) </th>
+                <th style="width:250px"> Major hazards (Warnings) </th>
             </tr>
             {% for key in reagents.keys()%} 
             <tr> 
-                <td rowspan="{{(reagents[key]|count)+1}}">{{loop.index}}</td>
-                <td rowspan="{{(reagents[key]|count)+1}}"> {{key.name}}</td>
+                <td style="width:100px" rowspan="{{(reagents[key]|count)+1}}">{{loop.index}}</td>
+                <td style="width:250px" rowspan="{{(reagents[key]|count)+1}}"> {{key.name}}</td>
             </tr>
                 {% for haz in reagents[key]%}
                 <tr>
-                    <td>{{haz.code}}</td>                               
-                    <td>{{haz.warning_line}}</td> 
+                    <td style="width:250px">{{haz.code}}</td>                               
+                    <td style="width:250px">{{haz.warning_line}}</td> 
                 </tr>                
                 {% endfor%}              
             
@@ -41,6 +56,9 @@
                 <td> (enter signature)</td>
                 <td> Date </td>  
                 <td>{{date}}</td> 
+            </tr>
+            <tr>
+                <td colspan="4"> The following compounds were not found in the database: {{not_found_in_db}} </td>
             </tr>
         </table>
    </body>

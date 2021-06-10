@@ -77,15 +77,19 @@ def fill_form():
     input = value.split(", ")
     cursor = get_db().cursor()
     reagents = {}
+    not_found_in_db = []
     for entry in input:
         compound, reagent_id = get_compound_by_input(entry, cursor)
-        if not compound:
-            return render_template('notfound.html', identifier = input, db = DATABASE)
-        hazards = get_hazards_by_reagent_id(reagent_id, cursor)
-        reagents[compound] = hazards
+        if compound:            
+            hazards = get_hazards_by_reagent_id(reagent_id, cursor)
+            reagents[compound] = hazards
+        else:
+            not_found_in_db.append(entry)
+            #return render_template('notfound.html', identifier = input, db = DATABASE)
     mytime = date.today()
+    not_found_table_entries = ", ".join(not_found_in_db)
    
-    return render_template('coshh.html', reagents = reagents, key = compound,date = mytime) 
+    return render_template('coshh.html', reagents = reagents, key = compound,date = mytime, not_found_in_db = not_found_table_entries ) 
 
 @app.route('/lookup', methods=['GET']) 
 
