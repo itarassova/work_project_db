@@ -24,7 +24,7 @@ Input file formatting:
 Compound name|Compound CAS number
 -------------|-------------------
 (R)-Tol-BINAP|99646-28-3
--------------|-------------------
+
 
 * **Run hello_world.py**
 
