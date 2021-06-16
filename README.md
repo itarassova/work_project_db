@@ -10,6 +10,7 @@ Python libraries:
 * openpyxl
 *	sqlite3
 *	flask
+*	logging
 
 **Tutorial**
 
@@ -17,9 +18,9 @@ Python libraries:
 
 * **Run importer.py**
 
-This script uses in-house chemicals inventory in Excel spreadsheet containing both compound names and CAS numbers (unique numerical identifier assigned to every chemical substance in the open scientific literature) as an input file to populate output SQL database with chemicals’ names, CAS numbers and associated hazards. (The source for chemical hazards for compounds is PubChem, the lookup is by compound CAS number and name).
+This script uses in-house chemicals inventory in Excel spreadsheet containing both compound names and CAS numbers (unique numerical identifier assigned to every chemical substance in the open scientific literature) as an input file to populate output SQL database with chemicals’ names, CAS numbers and associated hazards. (The source for chemical hazards for compounds is PubChem, the lookup is by compound CAS number and name). Compounds which could not be added into the database due to processing issues are uploaded into a separate Excel spreadsheet.
 
-Input file formatting:
+Input file formatting example:
 
 Compound name|Compound CAS number
 -------------|-------------------
